@@ -23,7 +23,7 @@
     // URLパラメータ ?gif=... で指定。未指定なら asset/test.gif を使う
     // speed は ?speed=... で指定（数値）。未指定なら 50.0
     const params = new URLSearchParams(location.search);
-    const GIF_URL = params.get("gif") || "asset/test.gif";
+    const GIF_URL = params.get("gif") || "asset/slotmachine.gif";
     const speedParam = Number(params.get("speed"));
     // 再生速度（1.0=等倍）
     let speed = Number.isFinite(speedParam) && speedParam > 0 ? speedParam : 50.0;
