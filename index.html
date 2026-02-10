@@ -22,10 +22,13 @@
   <script type="module">
     import { parseGIF, decompressFrames } from "https://cdn.jsdelivr.net/npm/gifuct-js@2.1.2/+esm";
 
-    // ▼ ここを自分のGIFに差し替え
-    const GIF_URL = "https://media.giphy.com/media/JIX9t2j0ZTN9S/giphy.gif";
+    // URLパラメータ ?gif=... で指定。未指定なら asset/test.gif を使う
+    // speed は ?speed=... で指定（数値）。未指定なら 50.0
+    const params = new URLSearchParams(location.search);
+    const GIF_URL = params.get("gif") || "asset/test.gif";
+    const speedParam = Number(params.get("speed"));
     // 再生速度（1.0=等倍）
-    let speed = 50.0;
+    let speed = Number.isFinite(speedParam) && speedParam > 0 ? speedParam : 50.0;
 
     const btn = document.getElementById("toggleBtn");
     const canvas = document.getElementById("gifCanvas");
@@ -36,6 +39,7 @@
     let frameIndex = 0;
     let lastFrameTime = 0;
     let isPlaying = true;
+    let baseImageData = null;
 
     init();
 
@@ -56,6 +60,7 @@
 
         canvas.width = gif.lsd.width;
         canvas.height = gif.lsd.height;
+        baseImageData = ctx.createImageData(canvas.width, canvas.height);
 
         renderFrame(frameIndex);
         btn.disabled = false;
@@ -78,6 +83,9 @@
 
         if (ts - lastFrameTime >= delay) {
           frameIndex = (frameIndex + 1) % frames.length;
+          if (frameIndex === 0) {
+            resetBase();
+          }
           renderFrame(frameIndex);
           lastFrameTime = ts;
         }
@@ -88,10 +96,68 @@
       requestAnimationFrame(tick);
     }
 
+    function resetBase() {
+      if (!baseImageData) return;
+      baseImageData.data.fill(0);
+    }
+
     function renderFrame(i) {
       const frame = frames[i];
-      const imageData = new ImageData(frame.patch, frame.dims.width, frame.dims.height);
-      ctx.putImageData(imageData, frame.dims.left, frame.dims.top);
+      if (!baseImageData) return;
+
+      // disposal 3: restore to previous
+      let prevData = null;
+      if (frame.disposalType === 3) {
+        prevData = baseImageData.data.slice();
+      }
+
+      // composite patch onto base
+      applyPatch(baseImageData, frame);
+      ctx.putImageData(baseImageData, 0, 0);
+
+      // disposal after render
+      if (frame.disposalType === 2) {
+        clearRectInBase(baseImageData, frame.dims.left, frame.dims.top, frame.dims.width, frame.dims.height);
+      } else if (frame.disposalType === 3 && prevData) {
+        baseImageData.data.set(prevData);
+      }
+    }
+
+    function applyPatch(base, frame) {
+      const { left, top, width, height } = frame.dims;
+      const patch = frame.patch;
+      const baseData = base.data;
+      const canvasWidth = base.width;
+
+      let p = 0;
+      for (let y = 0; y < height; y++) {
+        const baseRow = ((top + y) * canvasWidth + left) * 4;
+        for (let x = 0; x < width; x++) {
+          const a = patch[p + 3];
+          if (a !== 0) {
+            baseData[baseRow + x * 4 + 0] = patch[p + 0];
+            baseData[baseRow + x * 4 + 1] = patch[p + 1];
+            baseData[baseRow + x * 4 + 2] = patch[p + 2];
+            baseData[baseRow + x * 4 + 3] = patch[p + 3];
+          }
+          p += 4;
+        }
+      }
+    }
+
+    function clearRectInBase(base, left, top, width, height) {
+      const baseData = base.data;
+      const canvasWidth = base.width;
+      for (let y = 0; y < height; y++) {
+        const row = ((top + y) * canvasWidth + left) * 4;
+        for (let x = 0; x < width; x++) {
+          const idx = row + x * 4;
+          baseData[idx + 0] = 0;
+          baseData[idx + 1] = 0;
+          baseData[idx + 2] = 0;
+          baseData[idx + 3] = 0;
+        }
+      }
     }
   </script>
 </body>
