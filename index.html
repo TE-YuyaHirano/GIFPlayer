@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>GIF 再生/停止</title>
+  <style>
+    body { font-family: system-ui, sans-serif; padding: 24px; }
+    .wrap { display: grid; gap: 12px; max-width: 480px; }
+    canvas { width: 100%; height: auto; border-radius: 12px; border: 1px solid #ddd; }
+    button { padding: 10px 14px; border-radius: 10px; border: 1px solid #ccc; cursor: pointer; }
+    .status { font-size: 12px; color: #666; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <canvas id="gifCanvas"></canvas>
+    <button id="toggleBtn" disabled>読み込み中…</button>
+    <div class="status" id="statusText"></div>
+  </div>
+
+  <script type="module">
+    import { parseGIF, decompressFrames } from "https://cdn.jsdelivr.net/npm/gifuct-js@2.1.2/+esm";
+
+    // ▼ ここを自分のGIFに差し替え
+    const GIF_URL = "https://media.giphy.com/media/JIX9t2j0ZTN9S/giphy.gif";
+    // 再生速度（1.0=等倍）
+    let speed = 50.0;
+
+    const btn = document.getElementById("toggleBtn");
+    const canvas = document.getElementById("gifCanvas");
+    const statusText = document.getElementById("statusText");
+    const ctx = canvas.getContext("2d");
+
+    let frames = [];
+    let frameIndex = 0;
+    let lastFrameTime = 0;
+    let isPlaying = true;
+
+    init();
+
+    btn.addEventListener("click", () => {
+      if (!frames.length) return;
+      isPlaying = !isPlaying;
+      btn.textContent = isPlaying ? "Stop" : "Start";
+      statusText.textContent = isPlaying ? "再生中" : `停止中: ${frameIndex + 1} / ${frames.length}`;
+    });
+
+    async function init() {
+      try {
+        statusText.textContent = "GIFを読み込み中…";
+        const res = await fetch(GIF_URL, { mode: "cors" });
+        const buf = await res.arrayBuffer();
+        const gif = parseGIF(buf);
+        frames = decompressFrames(gif, true);
+
+        canvas.width = gif.lsd.width;
+        canvas.height = gif.lsd.height;
+
+        renderFrame(frameIndex);
+        btn.disabled = false;
+        btn.textContent = "Stop";
+        statusText.textContent = "再生中";
+
+        requestAnimationFrame(tick);
+      } catch (e) {
+        console.error("GIFの読み込みに失敗:", e);
+        statusText.textContent = "読み込みに失敗しました。CORS設定・URL・CDNブロックを確認してください。";
+      }
+    }
+
+    function tick(ts) {
+      if (!lastFrameTime) lastFrameTime = ts;
+
+      if (isPlaying && frames.length) {
+        const frame = frames[frameIndex];
+        const delay = (Math.max(frame.delay || 10, 2) * 10) / speed; // 1/100s -> ms, 最低20ms
+
+        if (ts - lastFrameTime >= delay) {
+          frameIndex = (frameIndex + 1) % frames.length;
+          renderFrame(frameIndex);
+          lastFrameTime = ts;
+        }
+      } else {
+        lastFrameTime = ts;
+      }
+
+      requestAnimationFrame(tick);
+    }
+
+    function renderFrame(i) {
+      const frame = frames[i];
+      const imageData = new ImageData(frame.patch, frame.dims.width, frame.dims.height);
+      ctx.putImageData(imageData, frame.dims.left, frame.dims.top);
+    }
+  </script>
+</body>
+</html>
