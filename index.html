@@ -5,18 +5,16 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>GIF 再生/停止</title>
   <style>
-    body { font-family: system-ui, sans-serif; padding: 24px; }
-    .wrap { display: grid; gap: 12px; max-width: 480px; }
+    body { font-family: system-ui, sans-serif; padding: 24px; display: flex; justify-content: center; }
+    .wrap { display: grid; gap: 12px; max-width: 480px; width: 100%; }
     canvas { width: 100%; height: auto; border-radius: 12px; border: 1px solid #ddd; }
     button { padding: 10px 14px; border-radius: 10px; border: 1px solid #ccc; cursor: pointer; }
-    .status { font-size: 12px; color: #666; }
   </style>
 </head>
 <body>
   <div class="wrap">
     <canvas id="gifCanvas"></canvas>
     <button id="toggleBtn" disabled>読み込み中…</button>
-    <div class="status" id="statusText"></div>
   </div>
 
   <script type="module">
@@ -32,7 +30,6 @@
 
     const btn = document.getElementById("toggleBtn");
     const canvas = document.getElementById("gifCanvas");
-    const statusText = document.getElementById("statusText");
     const ctx = canvas.getContext("2d");
 
     let frames = [];
@@ -47,12 +44,10 @@
       if (!frames.length) return;
       isPlaying = !isPlaying;
       btn.textContent = isPlaying ? "Stop" : "Start";
-      statusText.textContent = isPlaying ? "再生中" : `停止中: ${frameIndex + 1} / ${frames.length}`;
     });
 
     async function init() {
       try {
-        statusText.textContent = "GIFを読み込み中…";
         const res = await fetch(GIF_URL, { mode: "cors" });
         const buf = await res.arrayBuffer();
         const gif = parseGIF(buf);
@@ -65,12 +60,9 @@
         renderFrame(frameIndex);
         btn.disabled = false;
         btn.textContent = "Stop";
-        statusText.textContent = "再生中";
-
         requestAnimationFrame(tick);
       } catch (e) {
         console.error("GIFの読み込みに失敗:", e);
-        statusText.textContent = "読み込みに失敗しました。CORS設定・URL・CDNブロックを確認してください。";
       }
     }
 
