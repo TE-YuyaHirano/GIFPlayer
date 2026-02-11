@@ -8,13 +8,40 @@
     body { font-family: system-ui, sans-serif; padding: 24px; display: flex; justify-content: center; }
     .wrap { display: grid; gap: 12px; max-width: 480px; width: 100%; }
     canvas { width: 100%; height: auto; border-radius: 12px; border: 1px solid #ddd; }
-    button { padding: 10px 14px; border-radius: 10px; border: 1px solid #ccc; cursor: pointer; }
+    button { cursor: pointer; }
+    .startStop {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 64px;
+      height: 64px;
+      justify-self: center;
+      padding: 0;
+      border-radius: 50%;
+      border: 2px solid #7f1d1d;
+      background: radial-gradient(circle at 35% 30%, #ff7a7a 0%, #e53e3e 45%, #b91c1c 100%);
+      color: #3b240e;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      box-shadow: 0 6px 0 #7f1d1d, 0 10px 20px rgba(0,0,0,0.18);
+      transition: transform 120ms ease, box-shadow 120ms ease;
+    }
+    .startStop:active {
+      transform: translateY(3px);
+      box-shadow: 0 3px 0 #7a4f27, 0 6px 14px rgba(0,0,0,0.18);
+    }
+    .startStop[disabled] {
+      opacity: 0.6;
+      cursor: not-allowed;
+      box-shadow: 0 3px 0 #7f1d1d;
+    }
   </style>
 </head>
 <body>
   <div class="wrap">
     <canvas id="gifCanvas"></canvas>
-    <button id="toggleBtn" disabled>読み込み中…</button>
+    <button id="toggleBtn" class="startStop" disabled></button>
   </div>
 
   <script type="module">
@@ -43,7 +70,7 @@
     btn.addEventListener("click", () => {
       if (!frames.length) return;
       isPlaying = !isPlaying;
-      btn.textContent = isPlaying ? "Stop" : "Start";
+      updateButton();
     });
 
     async function init() {
@@ -59,7 +86,7 @@
 
         renderFrame(frameIndex);
         btn.disabled = false;
-        btn.textContent = "Stop";
+        updateButton();
         requestAnimationFrame(tick);
       } catch (e) {
         console.error("GIFの読み込みに失敗:", e);
@@ -150,6 +177,10 @@
           baseData[idx + 3] = 0;
         }
       }
+    }
+
+    function updateButton() {
+      btn.setAttribute("aria-label", isPlaying ? "Stop" : "Start");
     }
   </script>
 </body>
