@@ -17,6 +17,7 @@
       height: auto;
       border-radius: 12px;
       border: 1px solid #ddd;
+      touch-action: manipulation;
     }
     button { cursor: pointer; }
     .startStop {
@@ -36,6 +37,7 @@
       letter-spacing: 0.08em;
       box-shadow: 0 6px 0 #7f1d1d, 0 10px 20px rgba(0,0,0,0.18);
       transition: transform 120ms ease, box-shadow 120ms ease;
+      touch-action: manipulation;
     }
     .startStop:active {
       transform: translateY(3px);
@@ -196,17 +198,20 @@
     // iOSのダブルタップ拡大のみ抑止（ピンチズームは許可）
     (function disableDoubleTapZoom() {
       let lastTouchEnd = 0;
-      document.addEventListener(
-        "touchend",
-        (e) => {
-          const now = Date.now();
-          if (now - lastTouchEnd <= 300) {
-            e.preventDefault();
-          }
-          lastTouchEnd = now;
-        },
-        { passive: false }
-      );
+      const targets = [canvas, btn];
+      targets.forEach((el) => {
+        el.addEventListener(
+          "touchend",
+          (e) => {
+            const now = Date.now();
+            if (now - lastTouchEnd <= 300) {
+              e.preventDefault();
+            }
+            lastTouchEnd = now;
+          },
+          { passive: false }
+        );
+      });
     })();
   </script>
 </body>
