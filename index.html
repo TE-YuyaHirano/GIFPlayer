@@ -3,21 +3,28 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>GIF 再生/停止</title>
+  <title>slotmachine</title>
   <style>
+    * { box-sizing: border-box; }
     body {
       font-family: system-ui, sans-serif;
+      margin: 0;
       padding: 8px;
+      padding-left: max(8px, env(safe-area-inset-left));
+      padding-right: max(8px, env(safe-area-inset-right));
       display: flex;
       justify-content: center;
+      width: 100%;
     }
-    .wrap { display: grid; gap: 8px; max-width: 560px; width: 100%; }
+    .wrap { display: grid; gap: 8px; max-width: 560px; width: 100%; margin-inline: auto; }
     .canvasWrap {
       position: relative;
       width: 100%;
       aspect-ratio: 5 / 6;
+      margin-inline: auto;
     }
     canvas {
+      display: block;
       width: 100%;
       height: 100%;
       border-radius: 12px;
