@@ -5,9 +5,19 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>GIF 再生/停止</title>
   <style>
-    body { font-family: system-ui, sans-serif; padding: 24px; display: flex; justify-content: center; }
+    body {
+      font-family: system-ui, sans-serif;
+      padding: 24px;
+      display: flex;
+      justify-content: center;
+    }
     .wrap { display: grid; gap: 12px; max-width: 480px; width: 100%; }
-    canvas { width: 100%; height: auto; border-radius: 12px; border: 1px solid #ddd; }
+    canvas {
+      width: 100%;
+      height: auto;
+      border-radius: 12px;
+      border: 1px solid #ddd;
+    }
     button { cursor: pointer; }
     .startStop {
       display: inline-flex;
@@ -182,6 +192,22 @@
     function updateButton() {
       btn.setAttribute("aria-label", isPlaying ? "Stop" : "Start");
     }
+
+    // iOSのダブルタップ拡大のみ抑止（ピンチズームは許可）
+    (function disableDoubleTapZoom() {
+      let lastTouchEnd = 0;
+      document.addEventListener(
+        "touchend",
+        (e) => {
+          const now = Date.now();
+          if (now - lastTouchEnd <= 300) {
+            e.preventDefault();
+          }
+          lastTouchEnd = now;
+        },
+        { passive: false }
+      );
+    })();
   </script>
 </body>
 </html>
