@@ -7,14 +7,19 @@
   <style>
     body {
       font-family: system-ui, sans-serif;
-      padding: 24px;
+      padding: 8px;
       display: flex;
       justify-content: center;
     }
-    .wrap { display: grid; gap: 12px; max-width: 480px; width: 100%; }
+    .wrap { display: grid; gap: 8px; max-width: 560px; width: 100%; }
+    .canvasWrap {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 5 / 6;
+    }
     canvas {
       width: 100%;
-      height: auto;
+      height: 100%;
       border-radius: 12px;
       border: 1px solid #ddd;
       touch-action: manipulation;
@@ -48,11 +53,34 @@
       cursor: not-allowed;
       box-shadow: 0 3px 0 #7f1d1d;
     }
+    .loading {
+      position: absolute;
+      inset: 0;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      font-weight: 600;
+      color: #ffffff;
+      text-shadow: 0 2px 6px rgba(0,0,0,0.6);
+      pointer-events: none;
+    }
+    .loadingText {
+      text-align: center;
+      padding: 6px 12px;
+      border-radius: 999px;
+      background: rgba(0,0,0,0.35);
+    }
   </style>
 </head>
 <body>
   <div class="wrap">
-    <canvas id="gifCanvas"></canvas>
+    <div class="canvasWrap">
+      <canvas id="gifCanvas"></canvas>
+      <div class="loading" id="loadingWrap" aria-live="polite">
+        <div class="loadingText" id="loadingText">Loading...</div>
+      </div>
+    </div>
     <button id="toggleBtn" class="startStop" disabled></button>
   </div>
 
@@ -68,8 +96,12 @@
     let speed = Number.isFinite(speedParam) && speedParam > 0 ? speedParam : 50.0;
 
     const btn = document.getElementById("toggleBtn");
+    const canvasWrap = document.querySelector(".canvasWrap");
     const canvas = document.getElementById("gifCanvas");
     const ctx = canvas.getContext("2d");
+    const loadingWrap = document.getElementById("loadingWrap");
+    const loadingText = document.getElementById("loadingText");
+    let loadingTimer = null;
 
     let frames = [];
     let frameIndex = 0;
@@ -87,8 +119,8 @@
 
     async function init() {
       try {
-        const res = await fetch(GIF_URL, { mode: "cors" });
-        const buf = await res.arrayBuffer();
+        showLoading();
+        const buf = await fetchWithAnimation(GIF_URL);
         const gif = parseGIF(buf);
         frames = decompressFrames(gif, true);
 
@@ -99,9 +131,11 @@
         renderFrame(frameIndex);
         btn.disabled = false;
         updateButton();
+        hideLoading();
         requestAnimationFrame(tick);
       } catch (e) {
         console.error("GIFの読み込みに失敗:", e);
+        loadingText.textContent = "Loading failed";
       }
     }
 
@@ -193,6 +227,39 @@
 
     function updateButton() {
       btn.setAttribute("aria-label", isPlaying ? "Stop" : "Start");
+    }
+
+    function showLoading() {
+      loadingWrap.style.display = "flex";
+      startLoadingAnimation();
+    }
+
+    function hideLoading() {
+      loadingWrap.style.display = "none";
+      stopLoadingAnimation();
+    }
+
+    function startLoadingAnimation() {
+      stopLoadingAnimation();
+      let dots = 1;
+      loadingText.textContent = "Loading.";
+      loadingTimer = setInterval(() => {
+        dots = dots >= 5 ? 1 : dots + 1;
+        loadingText.textContent = "Loading" + ".".repeat(dots);
+      }, 500);
+    }
+
+    function stopLoadingAnimation() {
+      if (loadingTimer) {
+        clearInterval(loadingTimer);
+        loadingTimer = null;
+      }
+    }
+
+    async function fetchWithAnimation(url) {
+      const res = await fetch(url, { mode: "cors" });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      return await res.arrayBuffer();
     }
 
     // iOSのダブルタップ拡大のみ抑止（ピンチズームは許可）
