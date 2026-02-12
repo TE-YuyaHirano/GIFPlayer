@@ -31,6 +31,20 @@
       border: 1px solid #ddd;
       touch-action: manipulation;
     }
+    .altImage {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      border-radius: 12px;
+      opacity: 0;
+      transition: opacity 500ms ease;
+      pointer-events: none;
+    }
+    .altImage.show {
+      opacity: 1;
+    }
     button { cursor: pointer; }
     .startStop {
       display: inline-flex;
@@ -84,6 +98,7 @@
   <div class="wrap">
     <div class="canvasWrap">
       <canvas id="gifCanvas"></canvas>
+      <img id="altImage" class="altImage" alt="alternate" />
       <div class="loading" id="loadingWrap" aria-live="polite">
         <div class="loadingText" id="loadingText">Loading...</div>
       </div>
@@ -98,6 +113,7 @@
     // speed は ?speed=... で指定（数値）。未指定なら 50.0
     const params = new URLSearchParams(location.search);
     const GIF_URL = params.get("gif") || "asset/slotmachine.gif";
+    const ALT_URL = params.get("alt") || "asset/last.png";
     const speedParam = Number(params.get("speed"));
     // 再生速度（1.0=等倍）
     let speed = Number.isFinite(speedParam) && speedParam > 0 ? speedParam : 50.0;
@@ -106,6 +122,7 @@
     const canvasWrap = document.querySelector(".canvasWrap");
     const canvas = document.getElementById("gifCanvas");
     const ctx = canvas.getContext("2d");
+    const altImage = document.getElementById("altImage");
     const loadingWrap = document.getElementById("loadingWrap");
     const loadingText = document.getElementById("loadingText");
     let loadingTimer = null;
@@ -115,14 +132,22 @@
     let lastFrameTime = 0;
     let isPlaying = true;
     let baseImageData = null;
+    let longPressTimer = null;
+    let isAltVisible = false;
+    let longPressTriggered = false;
 
     init();
 
     btn.addEventListener("click", () => {
       if (!frames.length) return;
+      if (longPressTriggered) {
+        longPressTriggered = false;
+        return;
+      }
       isPlaying = !isPlaying;
       updateButton();
     });
+    setupLongPress();
 
     async function init() {
       try {
@@ -261,6 +286,39 @@
         clearInterval(loadingTimer);
         loadingTimer = null;
       }
+    }
+
+    function setupLongPress() {
+      if (!altImage) return;
+      altImage.src = ALT_URL;
+
+      const start = (e) => {
+        if (e.cancelable) e.preventDefault();
+        clearTimeout(longPressTimer);
+        longPressTimer = setTimeout(() => {
+          longPressTriggered = true;
+          isPlaying = false;
+          updateButton();
+          isAltVisible = true;
+          altImage.classList.add("show");
+        }, 5000);
+      };
+
+      const end = () => {
+        clearTimeout(longPressTimer);
+        if (isAltVisible) {
+          isAltVisible = false;
+          altImage.classList.remove("show");
+          isPlaying = true;
+          updateButton();
+        }
+      };
+
+      btn.addEventListener("pointerdown", start);
+      btn.addEventListener("pointerup", end);
+      btn.addEventListener("pointercancel", end);
+      btn.addEventListener("pointerleave", end);
+      btn.addEventListener("contextmenu", (e) => e.preventDefault());
     }
 
     async function fetchWithAnimation(url) {
