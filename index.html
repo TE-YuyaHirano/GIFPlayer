@@ -15,6 +15,9 @@
       display: flex;
       justify-content: center;
       width: 100%;
+      -webkit-touch-callout: none;
+      -webkit-user-select: none;
+      user-select: none;
     }
     .wrap { display: grid; gap: 8px; max-width: 560px; width: 100%; margin-inline: auto; }
     .canvasWrap {
@@ -64,6 +67,9 @@
       box-shadow: 0 6px 0 #7f1d1d, 0 10px 20px rgba(0,0,0,0.18);
       transition: transform 120ms ease, box-shadow 120ms ease;
       touch-action: manipulation;
+      -webkit-touch-callout: none;
+      -webkit-user-select: none;
+      user-select: none;
     }
     .startStop:active {
       transform: translateY(3px);
